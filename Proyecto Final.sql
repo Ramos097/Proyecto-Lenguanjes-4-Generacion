@@ -164,6 +164,7 @@ create procedure sp_read_plan_estudio_detalle
 as
 begin
 select
+
 -- Todo de detalle
     PED.id_plan_estudio_detalle,
     PED.id_plan_estudio,
@@ -371,15 +372,48 @@ begin
 end;
 
 ----PRUEBAS----
-exec sp_insertar_estado_programa_academico 1, 'activo', 1;
 
+-- insertar válido
+exec sp_insertar_estado_programa_academico 3, 'inactivo', 1;
+
+-- consultar todos
 exec sp_obtener_estados_programas_academicos;
 
-exec sp_obtener_estados_programas_academicos 1;
+-- consultar uno existente
+exec sp_obtener_estados_programas_academicos 3;
 
-exec sp_actualizar_estado_programa_academico 1, 'inactivo', 0;
+-- actualizar correcto
+exec sp_actualizar_estado_programa_academico 3, 'Inactivo', 0;
 
-exec sp_eliminar_estado_programa_academico 1;
+-- eliminar correcto
+exec sp_eliminar_estado_programa_academico 3;
+
+---- PRUEBAS DE ERROR ----
+
+-- INSERT: id null
+exec sp_insertar_estado_programa_academico null, 'Activo', 1;
+
+-- INSERT: nombre vacío
+exec sp_insertar_estado_programa_academico 10, '   ', 1;
+
+-- INSERT: es_activo null
+exec sp_insertar_estado_programa_academico 11, 'Activo', null;
+
+
+-- UPDATE: id no existe
+exec sp_actualizar_estado_programa_academico 999, 'Activo', 1;
+
+-- UPDATE: nombre null
+exec sp_actualizar_estado_programa_academico 1, null, 1;
+
+
+-- DELETE: id no existe
+exec sp_eliminar_estado_programa_academico 999;
+
+-- DELETE: id null
+exec sp_eliminar_estado_programa_academico null;
+
+
 
 		-------------------------- SOFIA ----------------------------------
 
