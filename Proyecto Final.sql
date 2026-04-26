@@ -103,6 +103,77 @@ where
 		--------------------------PLAN ESTUDIO-------------------------------
 
 		--------------------------CREATE (Emily)-----------------------------
+       CREATE PROCEDURE sp_create_plan_estudio
+(
+    @id_plan_estudio INT,
+    @id_carrera INT,
+    @id_grado INT,
+    @id_estado_plan_estudio INT,
+    @id_usuario_aprobacion INT,
+    @id_puesto_aprobacion INT,
+    @id_departamento_aprobacion INT
+)
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- VALIDACIONES
+        IF @id_plan_estudio IS NULL
+        BEGIN
+            PRINT 'Error: ID es obligatorio';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF EXISTS (SELECT 1 FROM PLAN_ESTUDIO WHERE id_plan_estudio = @id_plan_estudio)
+        BEGIN
+            PRINT 'Error: Ya existe ese ID';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @id_carrera IS NULL OR @id_grado IS NULL OR @id_estado_plan_estudio IS NULL
+        BEGIN
+            PRINT 'Error: Campos obligatorios faltantes';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- INSERT
+        INSERT INTO PLAN_ESTUDIO
+        (
+            id_plan_estudio,
+            id_carrera,
+            id_grado,
+            id_estado_plan_estudio,
+            id_usuario_aprobacion,
+            id_puesto_aprobacion,
+            id_departamento_aprobacion
+        )
+        VALUES
+        (
+            @id_plan_estudio,
+            @id_carrera,
+            @id_grado,
+            @id_estado_plan_estudio,
+            @id_usuario_aprobacion,
+            @id_puesto_aprobacion,
+            @id_departamento_aprobacion
+        );
+
+        PRINT 'Plan de estudio creado correctamente';
+        COMMIT;
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        PRINT 'Error: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM CARRERAS WHERE id_carrera = @id_carrera)
 
 		--------------------------READ (Marvin)-----------------------------
 
@@ -157,6 +228,99 @@ go
 		--------------------------PLAN ESTUDIO DETALLE-----------------------
 
 		--------------------------CREATE (Emily)-----------------------------
+    CREATE PROCEDURE sp_create_plan_estudio_detalle
+(
+    @id_plan_estudio_detalle INT,
+    @id_plan_estudio INT,
+    @numero_bloque INT,
+    @id_curso INT,
+    @cantidad_creditos INT,
+    @cantidad_horas INT,
+    @es_activo BIT
+)
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- VALIDACIONES
+        IF @id_plan_estudio_detalle IS NULL
+        BEGIN
+            PRINT 'Error: ID detalle es obligatorio';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF EXISTS (
+            SELECT 1 
+            FROM PLAN_ESTUDIO_DETALLE 
+            WHERE id_plan_estudio_detalle = @id_plan_estudio_detalle
+        )
+        BEGIN
+            PRINT 'Error: Ya existe ese ID';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @id_plan_estudio IS NULL OR @id_curso IS NULL
+        BEGIN
+            PRINT 'Error: Campos obligatorios faltantes';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @cantidad_creditos <= 0 OR @cantidad_horas <= 0
+        BEGIN
+            PRINT 'Error: Créditos y horas deben ser mayores a 0';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @es_activo IS NULL
+        BEGIN
+            PRINT 'Error: Estado activo es obligatorio';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- INSERT
+        INSERT INTO PLAN_ESTUDIO_DETALLE
+        (
+            id_plan_estudio_detalle,
+            id_plan_estudio,
+            numero_bloque,
+            id_curso,
+            cantidad_creditos,
+            cantidad_horas,
+            es_activo
+        )
+        VALUES
+        (
+            @id_plan_estudio_detalle,
+            @id_plan_estudio,
+            @numero_bloque,
+            @id_curso,
+            @cantidad_creditos,
+            @cantidad_horas,
+            @es_activo
+        );
+
+        PRINT 'Detalle creado correctamente';
+        COMMIT;
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        PRINT 'Error: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+GO
+
+PRINT 'PRUEBA CREATE PLAN ESTUDIO DETALLE';
+
+EXEC sp_create_plan_estudio_detalle
+1, 1, 1, 1, 3, 48, 1;
+GO
 
 		--------------------------READ (Marvin)-----------------------------
 
@@ -1059,7 +1223,6 @@ BEGIN
     END CATCH
 END;
 GO
-
 -- =====================================================
 -- PRUEBAS CRUD - ESTADOS_PLAN_ESTUDIO (EMILY)
 -- =====================================================
