@@ -884,3 +884,264 @@ SELECT * FROM TIPOS_CARRERA ORDER BY id_tipo_carrera;
 GO
 
 		-------------------------- EMILY ----------------------------------
+
+        ----CREATE----
+CREATE PROCEDURE sp_estados_plan_estudio_emily_soler_create_20260423_1200_v3
+(
+    @id_estado_plan_estudio INT,
+    @nombre_estado_plan_estudio VARCHAR(100)
+)
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF @id_estado_plan_estudio IS NULL
+        BEGIN
+            PRINT 'Error: El id_estado_plan_estudio es obligatorio.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @nombre_estado_plan_estudio IS NULL 
+           OR LTRIM(RTRIM(@nombre_estado_plan_estudio)) = ''
+        BEGIN
+            PRINT 'Error: El nombre es obligatorio.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF EXISTS (
+            SELECT 1 
+            FROM ESTADOS_PLAN_ESTUDIO 
+            WHERE id_estado_plan_estudio = @id_estado_plan_estudio
+        )
+        BEGIN
+            PRINT 'Error: Ya existe ese ID.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        INSERT INTO ESTADOS_PLAN_ESTUDIO
+        (
+            id_estado_plan_estudio,
+            nombre_estado_plan_estudio
+        )
+        VALUES
+        (
+            @id_estado_plan_estudio,
+            @nombre_estado_plan_estudio
+        );
+
+        PRINT 'Registro insertado correctamente.';
+        COMMIT;
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        PRINT 'Error al insertar: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+GO
+
+
+        ----READ----
+CREATE PROCEDURE sp_estados_plan_estudio_emily_soler_read_20260423_1230
+AS
+BEGIN
+    BEGIN TRY
+
+        SELECT 
+            id_estado_plan_estudio,
+            nombre_estado_plan_estudio
+        FROM ESTADOS_PLAN_ESTUDIO
+        ORDER BY id_estado_plan_estudio;
+
+    END TRY
+    BEGIN CATCH
+        PRINT 'Error al consultar: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+GO
+
+
+        ----UPDATE----
+CREATE PROCEDURE sp_estados_plan_estudio_emily_soler_update_20260423_1240
+(
+    @id_estado_plan_estudio INT,
+    @nombre_estado_plan_estudio VARCHAR(100)
+)
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF @id_estado_plan_estudio IS NULL
+        BEGIN
+            PRINT 'Error: El id_estado_plan_estudio es obligatorio.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF NOT EXISTS (
+            SELECT 1 
+            FROM ESTADOS_PLAN_ESTUDIO 
+            WHERE id_estado_plan_estudio = @id_estado_plan_estudio
+        )
+        BEGIN
+            PRINT 'Error: El registro no existe.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @nombre_estado_plan_estudio IS NULL 
+           OR LTRIM(RTRIM(@nombre_estado_plan_estudio)) = ''
+        BEGIN
+            PRINT 'Error: El nombre es obligatorio.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        UPDATE ESTADOS_PLAN_ESTUDIO
+        SET nombre_estado_plan_estudio = @nombre_estado_plan_estudio
+        WHERE id_estado_plan_estudio = @id_estado_plan_estudio;
+
+        PRINT 'Registro actualizado correctamente.';
+        COMMIT;
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        PRINT 'Error al actualizar: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+GO
+
+
+        ----DELETE----
+CREATE PROCEDURE sp_estados_plan_estudio_emily_soler_delete_20260423_1250
+(
+    @id_estado_plan_estudio INT
+)
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF @id_estado_plan_estudio IS NULL
+        BEGIN
+            PRINT 'Error: El id_estado_plan_estudio es obligatorio.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF NOT EXISTS (
+            SELECT 1 
+            FROM ESTADOS_PLAN_ESTUDIO 
+            WHERE id_estado_plan_estudio = @id_estado_plan_estudio
+        )
+        BEGIN
+            PRINT 'Error: El registro no existe.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        DELETE FROM ESTADOS_PLAN_ESTUDIO
+        WHERE id_estado_plan_estudio = @id_estado_plan_estudio;
+
+        PRINT 'Registro eliminado correctamente.';
+        COMMIT;
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        PRINT 'Error al eliminar: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+GO
+
+-- =====================================================
+-- PRUEBAS CRUD - ESTADOS_PLAN_ESTUDIO (EMILY)
+-- =====================================================
+
+PRINT '==============================================';
+PRINT 'PRUEBA 1: INSERTAR REGISTROS';
+PRINT '==============================================';
+
+EXEC sp_estados_plan_estudio_emily_soler_create_20260423_1200_v3 1, 'Activo';
+EXEC sp_estados_plan_estudio_emily_soler_create_20260423_1200_v3 2, 'Inactivo';
+GO
+
+PRINT '';
+PRINT '==============================================';
+PRINT 'PRUEBA 2: CONSULTAR REGISTROS';
+PRINT '==============================================';
+
+EXEC sp_estados_plan_estudio_emily_soler_read_20260423_1230;
+GO
+
+PRINT '';
+PRINT '==============================================';
+PRINT 'PRUEBA 3: ACTUALIZAR REGISTROS';
+PRINT '==============================================';
+
+EXEC sp_estados_plan_estudio_emily_soler_update_20260423_1240 1, 'Activo Modificado';
+GO
+
+PRINT '';
+PRINT 'Verificando cambios:';
+EXEC sp_estados_plan_estudio_emily_soler_read_20260423_1230;
+GO
+
+PRINT '';
+PRINT '==============================================';
+PRINT 'PRUEBA 4: ELIMINAR REGISTROS';
+PRINT '==============================================';
+
+EXEC sp_estados_plan_estudio_emily_soler_delete_20260423_1250 2;
+GO
+
+PRINT '';
+PRINT 'Verificando eliminación:';
+EXEC sp_estados_plan_estudio_emily_soler_read_20260423_1230;
+GO
+
+PRINT '';
+PRINT '==============================================';
+PRINT 'PRUEBA 5: VALIDACIONES (ERRORES)';
+PRINT '==============================================';
+
+-- ID NULL
+PRINT 'Caso 1: ID NULL';
+EXEC sp_estados_plan_estudio_emily_soler_create_20260423_1200_v3 NULL, 'Activo';
+GO
+
+-- Nombre vacío
+PRINT '';
+PRINT 'Caso 2: Nombre vacío';
+EXEC sp_estados_plan_estudio_emily_soler_create_20260423_1200_v3 10, '';
+GO
+
+-- ID duplicado
+PRINT '';
+PRINT 'Caso 3: ID duplicado';
+EXEC sp_estados_plan_estudio_emily_soler_create_20260423_1200_v3 1, 'Duplicado';
+GO
+
+-- UPDATE con ID inexistente
+PRINT '';
+PRINT 'Caso 4: Update ID inexistente';
+EXEC sp_estados_plan_estudio_emily_soler_update_20260423_1240 99, 'No existe';
+GO
+
+-- DELETE con ID inexistente
+PRINT '';
+PRINT 'Caso 5: Delete ID inexistente';
+EXEC sp_estados_plan_estudio_emily_soler_delete_20260423_1250 99;
+GO
+
+-- DELETE con ID NULL
+PRINT '';
+PRINT 'Caso 6: Delete ID NULL';
+EXEC sp_estados_plan_estudio_emily_soler_delete_20260423_1250 NULL;
+GO
