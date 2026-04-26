@@ -224,6 +224,28 @@ go
 		--------------------------UPDATE (Milton)----------------------------
 
 		--------------------------DELETE (Sofia)-----------------------------
+        /* =========================================================
+   DELETE TABLA MAESTRA: PLAN_ESTUDIO
+========================================================= */
+CREATE PROCEDURE SP_DELETE_PLAN_ESTUDIO
+    @id_plan_estudio INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        DELETE FROM PLAN_ESTUDIO
+        WHERE id_plan_estudio = @id_plan_estudio;
+
+        PRINT 'PLAN_ESTUDIO eliminado correctamente.';
+    END TRY
+
+    BEGIN CATCH
+        PRINT 'Error al eliminar PLAN_ESTUDIO.';
+        PRINT ERROR_MESSAGE();
+    END CATCH
+END;
+GO
 
 		--------------------------PLAN ESTUDIO DETALLE-----------------------
 
@@ -360,6 +382,28 @@ go
 		--------------------------UPDATE (Milton)----------------------------
 
 		--------------------------DELETE (Sofia)-----------------------------
+/* =========================================================
+   DELETE TABLA DETALLE: PLAN_ESTUDIO_DETALLE
+========================================================= */
+CREATE PROCEDURE SP_DELETE_PLAN_ESTUDIO_DETALLE
+    @id_plan_estudio_detalle INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        DELETE FROM PLAN_ESTUDIO_DETALLE
+        WHERE id_plan_estudio_detalle = @id_plan_estudio_detalle;
+
+        PRINT 'PLAN_ESTUDIO_DETALLE eliminado correctamente.';
+    END TRY
+
+    BEGIN CATCH
+        PRINT 'Error al eliminar PLAN_ESTUDIO_DETALLE.';
+        PRINT ERROR_MESSAGE();
+    END CATCH
+END;
+GO
 
 		--------------------------CRUD INDIVIDUAL----------------------------
 
@@ -580,6 +624,248 @@ exec sp_eliminar_estado_programa_academico null;
 
 
 		-------------------------- SOFIA ----------------------------------
+        /*
+Autora: Sofia Saborio
+Grupo 3 - Planes de Estudio
+CRUD Individual - Tabla TIPOS_CURSOS
+Procedimiento: CREATE
+*/
+
+CREATE PROCEDURE sp_tipos_cursos_sofia_saborio_create_20260421_1230
+(
+    @id_tipo_curso INT,
+    @nombre_tipo_curso VARCHAR(30),
+    @es_activo BIT
+)
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- Validación ID obligatorio
+        IF @id_tipo_curso IS NULL
+        BEGIN
+            PRINT 'Error: El id_tipo_curso es obligatorio.';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- Validación nombre obligatorio
+        IF @nombre_tipo_curso IS NULL OR LTRIM(RTRIM(@nombre_tipo_curso)) = ''
+        BEGIN
+            PRINT 'Error: El nombre_tipo_curso es obligatorio.';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- Validar duplicado ID
+        IF EXISTS (SELECT 1 FROM TIPOS_CURSOS WHERE id_tipo_curso = @id_tipo_curso)
+        BEGIN
+            PRINT 'Error: Ya existe ese id_tipo_curso.';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- Validar duplicado nombre
+        IF EXISTS (SELECT 1 FROM TIPOS_CURSOS WHERE nombre_tipo_curso = @nombre_tipo_curso)
+        BEGIN
+            PRINT 'Error: Ya existe ese nombre_tipo_curso.';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        INSERT INTO TIPOS_CURSOS
+        (
+            id_tipo_curso,
+            nombre_tipo_curso,
+            es_activo
+        )
+        VALUES
+        (
+            @id_tipo_curso,
+            @nombre_tipo_curso,
+            @es_activo
+        );
+
+        COMMIT TRANSACTION;
+        PRINT 'Registro insertado correctamente.';
+
+    END TRY
+
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        PRINT 'Error al insertar.';
+        PRINT ERROR_MESSAGE();
+    END CATCH
+END;
+/*
+Autora: Sofia Saborio
+Grupo 3 - Planes de Estudio
+CRUD Individual - Tabla TIPOS_CURSOS
+Procedimiento: READ
+*/
+
+USE SGIEDB;
+GO
+
+DROP PROCEDURE IF EXISTS dbo.sp_tipos_cursos_sofia_saborio_read_20260421_1240;
+GO
+
+CREATE PROCEDURE dbo.sp_tipos_cursos_sofia_saborio_read_20260421_1240
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+
+        SELECT 
+            id_tipo_curso,
+            nombre_tipo_curso,
+            es_activo
+        FROM dbo.TIPOS_CURSOS
+        ORDER BY id_tipo_curso;
+
+    END TRY
+
+    BEGIN CATCH
+        PRINT 'Error al consultar datos.';
+        PRINT ERROR_MESSAGE();
+
+    END CATCH
+END;
+GO
+/*
+Autora: Sofia Saborio
+Grupo 3 - Planes de Estudio
+CRUD Individual - Tabla TIPOS_CURSOS
+Procedimiento: UPDATE
+Fecha: 21/04/2026
+*/
+
+USE SGIEDB;
+GO
+
+DROP PROCEDURE IF EXISTS dbo.sp_tipos_cursos_sofia_saborio_update_20260421_1300;
+GO
+
+CREATE PROCEDURE dbo.sp_tipos_cursos_sofia_saborio_update_20260421_1300
+(
+    @id_tipo_curso INT,
+    @nombre_tipo_curso VARCHAR(30),
+    @es_activo BIT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- Validar ID obligatorio
+        IF @id_tipo_curso IS NULL
+        BEGIN
+            PRINT 'Error: El id_tipo_curso es obligatorio.';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- Validar nombre obligatorio
+        IF @nombre_tipo_curso IS NULL OR LTRIM(RTRIM(@nombre_tipo_curso)) = ''
+        BEGIN
+            PRINT 'Error: El nombre_tipo_curso es obligatorio.';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- Validar existencia
+        IF NOT EXISTS (
+            SELECT 1 
+            FROM dbo.TIPOS_CURSOS
+            WHERE id_tipo_curso = @id_tipo_curso
+        )
+        BEGIN
+            PRINT 'Error: El registro no existe.';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        UPDATE dbo.TIPOS_CURSOS
+        SET nombre_tipo_curso = @nombre_tipo_curso,
+            es_activo = @es_activo
+        WHERE id_tipo_curso = @id_tipo_curso;
+
+        COMMIT TRANSACTION;
+        PRINT 'Registro actualizado correctamente.';
+
+    END TRY
+
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        PRINT 'Error al actualizar.';
+        PRINT ERROR_MESSAGE();
+    END CATCH
+END;
+GO
+/*
+Autora: Sofia Saborio
+Grupo 3 - Planes de Estudio
+CRUD Individual - Tabla TIPOS_CURSOS
+Procedimiento: DELETE
+Fecha: 21/04/2026
+*/
+
+USE SGIEDB;
+GO
+
+DROP PROCEDURE IF EXISTS dbo.sp_tipos_cursos_sofia_saborio_delete_20260421_1310;
+GO
+
+CREATE PROCEDURE dbo.sp_tipos_cursos_sofia_saborio_delete_20260421_1310
+(
+    @id_tipo_curso INT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- Validar ID obligatorio
+        IF @id_tipo_curso IS NULL
+        BEGIN
+            PRINT 'Error: El id_tipo_curso es obligatorio.';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- Validar existencia
+        IF NOT EXISTS (
+            SELECT 1
+            FROM dbo.TIPOS_CURSOS
+            WHERE id_tipo_curso = @id_tipo_curso
+        )
+        BEGIN
+            PRINT 'Error: El registro no existe.';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        DELETE FROM dbo.TIPOS_CURSOS
+        WHERE id_tipo_curso = @id_tipo_curso;
+
+        COMMIT TRANSACTION;
+        PRINT 'Registro eliminado correctamente.';
+
+    END TRY
+
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        PRINT 'Error al eliminar.';
+        PRINT ERROR_MESSAGE();
+    END CATCH
+END;
+GO
 
 		-------------------------- MILTON ----------------------------------
 -- CREATE--
@@ -1050,6 +1336,12 @@ GO
 		-------------------------- EMILY ----------------------------------
 
         ----CREATE----
+        /*
+Autora: Emily Solera
+Grupo 3 - Planes de Estudio
+CRUD Individual - Tabla ESTADOS_PLAN_ESTUDIO
+Procedimiento: CREATE
+*/
 CREATE PROCEDURE sp_estados_plan_estudio_emily_soler_create_20260423_1200_v3
 (
     @id_estado_plan_estudio INT,
@@ -1110,6 +1402,12 @@ GO
 
 
         ----READ----
+        /*
+Autora: Emily Solera
+Grupo 3 - Planes de Estudio
+CRUD Individual - Tabla ESTADOS_PLAN_ESTUDIO
+Procedimiento: READ
+*/
 CREATE PROCEDURE sp_estados_plan_estudio_emily_soler_read_20260423_1230
 AS
 BEGIN
@@ -1130,6 +1428,12 @@ GO
 
 
         ----UPDATE----
+        /*
+Autora: Emily Solera
+Grupo 3 - Planes de Estudio
+CRUD Individual - Tabla ESTADOS_PLAN_ESTUDIO
+Procedimiento: UPDATE
+*/
 CREATE PROCEDURE sp_estados_plan_estudio_emily_soler_update_20260423_1240
 (
     @id_estado_plan_estudio INT,
@@ -1183,6 +1487,12 @@ GO
 
 
         ----DELETE----
+        /*
+Autora: Emily Solera
+Grupo 3 - Planes de Estudio
+CRUD Individual - Tabla ESTADOS_PLAN_ESTUDIO
+Procedimiento: DELETE
+*/
 CREATE PROCEDURE sp_estados_plan_estudio_emily_soler_delete_20260423_1250
 (
     @id_estado_plan_estudio INT
