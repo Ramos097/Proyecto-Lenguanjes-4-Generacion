@@ -222,6 +222,272 @@ end;
 go
 
 		--------------------------UPDATE (Milton)----------------------------
+CREATE OR ALTER PROCEDURE sp_update_plan_estudio
+(
+    @id_plan_estudio INT,
+    @id_carrera INT,
+    @id_grado INT,
+    @id_estado_plan_estudio INT,
+    @id_usuario_aprobacion INT = NULL,
+    @id_puesto_aprobacion INT = NULL,
+    @id_departamento_aprobacion INT = NULL
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- =========================================================
+        -- VALIDACIÓN 1: Campos obligatorios (NOT NULL)
+        -- =========================================================
+        
+        -- Verificar que el ID del plan de estudio NO sea NULL
+        IF @id_plan_estudio IS NULL
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El campo "id_plan_estudio" es obligatorio. No puede estar vacío.';
+            PRINT 'Solución: Proporcione un valor numérico entero para identificar el plan de estudio a actualizar.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que el ID de la carrera NO sea NULL
+        IF @id_carrera IS NULL
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El campo "id_carrera" es obligatorio. No puede estar vacío.';
+            PRINT 'Solución: Proporcione un ID de carrera válido existente en la tabla CARRERAS.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que el ID del grado NO sea NULL
+        IF @id_grado IS NULL
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El campo "id_grado" es obligatorio. No puede estar vacío.';
+            PRINT 'Solución: Proporcione un ID de grado válido existente en la tabla GRADOS.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que el ID del estado NO sea NULL
+        IF @id_estado_plan_estudio IS NULL
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El campo "id_estado_plan_estudio" es obligatorio. No puede estar vacío.';
+            PRINT 'Solución: Proporcione un ID de estado válido existente en la tabla ESTADOS_PLAN_ESTUDIO.';
+            ROLLBACK;
+            RETURN;
+        END
+
+
+        -- VALIDACIÓN 2: Validación de contenido de datos (tipos y rangos)
+     
+        
+        -- Validar que los IDs sean números positivos (enteros mayores a 0)
+        IF @id_plan_estudio <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El campo "id_plan_estudio" debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + ISNULL(CAST(@id_plan_estudio AS VARCHAR), 'NULL');
+            PRINT 'Solución: Use números positivos como 1, 2, 3, etc.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @id_carrera <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El campo "id_carrera" debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + ISNULL(CAST(@id_carrera AS VARCHAR), 'NULL');
+            PRINT 'Solución: Consulte la tabla CARRERAS para obtener IDs válidos.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @id_grado <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El campo "id_grado" debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + ISNULL(CAST(@id_grado AS VARCHAR), 'NULL');
+            PRINT 'Solución: Consulte la tabla GRADOS para obtener IDs válidos.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @id_estado_plan_estudio <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El campo "id_estado_plan_estudio" debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + ISNULL(CAST(@id_estado_plan_estudio AS VARCHAR), 'NULL');
+            PRINT 'Solución: Consulte la tabla ESTADOS_PLAN_ESTUDIO para obtener IDs válidos.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Validar campos opcionales si fueron proporcionados
+        IF @id_usuario_aprobacion IS NOT NULL AND @id_usuario_aprobacion <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El campo "id_usuario_aprobacion" debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + CAST(@id_usuario_aprobacion AS VARCHAR);
+            PRINT 'Solución: Proporcione un ID de usuario válido o deje el campo como NULL.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @id_puesto_aprobacion IS NOT NULL AND @id_puesto_aprobacion <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El campo "id_puesto_aprobacion" debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + CAST(@id_puesto_aprobacion AS VARCHAR);
+            PRINT 'Solución: Proporcione un ID de puesto válido o deje el campo como NULL.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @id_departamento_aprobacion IS NOT NULL AND @id_departamento_aprobacion <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El campo "id_departamento_aprobacion" debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + CAST(@id_departamento_aprobacion AS VARCHAR);
+            PRINT 'Solución: Proporcione un ID de departamento válido o deje el campo como NULL.';
+            ROLLBACK;
+            RETURN;
+        END
+
+
+        -- VALIDACIÓN 3: Verificar que los registros existan en las tablas relacionadas
+
+        
+        -- Verificar que el registro a actualizar existe
+        IF NOT EXISTS (SELECT 1 FROM PLAN_ESTUDIO WHERE id_plan_estudio = @id_plan_estudio)
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: No existe un plan de estudio con el ID especificado.';
+            PRINT 'ID proporcionado: ' + CAST(@id_plan_estudio AS VARCHAR);
+            PRINT 'Solución: Verifique que el ID sea correcto. Use SP_READ_PLAN_ESTUDIO para listar los existentes.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que la carrera existe
+        IF NOT EXISTS (SELECT 1 FROM CARRERAS WHERE id_carrera = @id_carrera)
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: La carrera especificada no existe en la base de datos.';
+            PRINT 'ID de carrera proporcionado: ' + CAST(@id_carrera AS VARCHAR);
+            PRINT 'Solución: Consulte la tabla CARRERAS para obtener IDs válidos.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que el grado existe
+        IF NOT EXISTS (SELECT 1 FROM GRADOS WHERE id_grado = @id_grado)
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El grado especificado no existe en la base de datos.';
+            PRINT 'ID de grado proporcionado: ' + CAST(@id_grado AS VARCHAR);
+            PRINT 'Solución: Consulte la tabla GRADOS para obtener IDs válidos.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que el estado existe
+        IF NOT EXISTS (SELECT 1 FROM ESTADOS_PLAN_ESTUDIO WHERE id_estado_plan_estudio = @id_estado_plan_estudio)
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El estado especificado no existe en la base de datos.';
+            PRINT 'ID de estado proporcionado: ' + CAST(@id_estado_plan_estudio AS VARCHAR);
+            PRINT 'Solución: Consulte la tabla ESTADOS_PLAN_ESTUDIO para obtener IDs válidos.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar usuario si fue proporcionado
+        IF @id_usuario_aprobacion IS NOT NULL 
+           AND NOT EXISTS (SELECT 1 FROM USUARIOS WHERE id_usuario = @id_usuario_aprobacion)
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El usuario especificado no existe en la base de datos.';
+            PRINT 'ID de usuario proporcionado: ' + CAST(@id_usuario_aprobacion AS VARCHAR);
+            PRINT 'Solución: Consulte la tabla USUARIOS para obtener IDs válidos o deje el campo como NULL.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar puesto si fue proporcionado
+        IF @id_puesto_aprobacion IS NOT NULL 
+           AND NOT EXISTS (SELECT 1 FROM PUESTOS WHERE id_puesto = @id_puesto_aprobacion)
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El puesto especificado no existe en la base de datos.';
+            PRINT 'ID de puesto proporcionado: ' + CAST(@id_puesto_aprobacion AS VARCHAR);
+            PRINT 'Solución: Consulte la tabla PUESTOS para obtener IDs válidos o deje el campo como NULL.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar departamento si fue proporcionado
+        IF @id_departamento_aprobacion IS NOT NULL 
+           AND NOT EXISTS (SELECT 1 FROM DEPARTAMENTOS WHERE id_departamento = @id_departamento_aprobacion)
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO]: El departamento especificado no existe en la base de datos.';
+            PRINT 'ID de departamento proporcionado: ' + CAST(@id_departamento_aprobacion AS VARCHAR);
+            PRINT 'Solución: Consulte la tabla DEPARTAMENTOS para obtener IDs válidos o deje el campo como NULL.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        UPDATE PLAN_ESTUDIO
+        SET 
+            id_carrera = @id_carrera,
+            id_grado = @id_grado,
+            id_estado_plan_estudio = @id_estado_plan_estudio,
+            id_usuario_aprobacion = @id_usuario_aprobacion,
+            id_puesto_aprobacion = @id_puesto_aprobacion,
+            id_departamento_aprobacion = @id_departamento_aprobacion
+        WHERE 
+            id_plan_estudio = @id_plan_estudio;
+
+        PRINT 'ÉXITO: Plan de estudio actualizado correctamente.';
+        PRINT 'ID actualizado: ' + CAST(@id_plan_estudio AS VARCHAR);
+        COMMIT;
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        PRINT 'ERROR INESPERADO [PLAN_ESTUDIO]: ' + ERROR_MESSAGE();
+        PRINT 'Código de error: ' + CAST(ERROR_NUMBER() AS VARCHAR);
+        PRINT 'Línea: ' + CAST(ERROR_LINE() AS VARCHAR);
+    END CATCH
+END;
+GO
+
+---PRUEBAS DE VALIDACIÓN - PLAN_ESTUDIO---
+
+
+-- PRUEBA 1: Campos obligatorios NULL
+
+EXEC sp_update_plan_estudio 
+    @id_plan_estudio = 1,
+    @id_carrera = NULL,
+    @id_grado = 2,
+    @id_estado_plan_estudio = 1;
+GO
+
+-- PRUEBA 2: ID negativo
+
+EXEC sp_update_plan_estudio 
+    @id_plan_estudio = -5,
+    @id_carrera = 1,
+    @id_grado = 2,
+    @id_estado_plan_estudio = 1;
+GO
+
+-- PRUEBA 3: ID que no existe
+
+EXEC sp_update_plan_estudio 
+    @id_plan_estudio = 9999,
+    @id_carrera = 1,
+    @id_grado = 2,
+    @id_estado_plan_estudio = 1;
+GO
+
+-- PRUEBA 4: Carrera que no existe
+
+EXEC sp_update_plan_estudio 
+    @id_plan_estudio = 1,
+    @id_carrera = 9999,
+    @id_grado = 2,
+    @id_estado_plan_estudio = 1;
+GO
 
 		--------------------------DELETE (Sofia)-----------------------------
         /* =========================================================
@@ -380,6 +646,329 @@ end;
 go
 
 		--------------------------UPDATE (Milton)----------------------------
+    CREATE OR ALTER PROCEDURE sp_update_plan_estudio_detalle
+(
+    @id_plan_estudio_detalle INT,
+    @id_plan_estudio INT,
+    @numero_bloque INT = NULL,
+    @id_curso INT,
+    @cantidad_creditos INT,
+    @cantidad_horas INT,
+    @es_activo BIT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+
+        -- VALIDACIÓN 1: Campos obligatorios (NOT NULL)--
+
+        
+        -- Verificar que el ID del detalle NO sea NULL
+        IF @id_plan_estudio_detalle IS NULL
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El campo "id_plan_estudio_detalle" es obligatorio. No puede estar vacío.';
+            PRINT 'Solución: Proporcione un valor numérico entero para identificar el detalle a actualizar.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que el ID del plan de estudio NO sea NULL--
+        IF @id_plan_estudio IS NULL
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El campo "id_plan_estudio" es obligatorio. No puede estar vacío.';
+            PRINT 'Solución: Proporcione un ID de plan de estudio válido existente en la tabla PLAN_ESTUDIO.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que el ID del curso NO sea NULL--
+        IF @id_curso IS NULL
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El campo "id_curso" es obligatorio. No puede estar vacío.';
+            PRINT 'Solución: Proporcione un ID de curso válido existente en la tabla CURSOS.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que la cantidad de créditos NO sea NULL--
+        IF @cantidad_creditos IS NULL
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El campo "cantidad_creditos" es obligatorio. No puede estar vacío.';
+            PRINT 'Solución: Proporcione un número entero mayor a 0 para los créditos.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que la cantidad de horas NO sea NULL---
+        IF @cantidad_horas IS NULL
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El campo "cantidad_horas" es obligatorio. No puede estar vacío.';
+            PRINT 'Solución: Proporcione un número entero mayor a 0 para las horas.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que el estado activo NO sea NULL--
+        IF @es_activo IS NULL
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El campo "es_activo" es obligatorio. No puede estar vacío.';
+            PRINT 'Solución: Proporcione 1 (activo) o 0 (inactivo) para este campo.';
+            ROLLBACK;
+            RETURN;
+        END
+
+  
+        -- VALIDACIÓN 2: Validación de contenido de datos (tipos y rangos)---
+
+        
+        -- Validar que los IDs sean números positivos
+        IF @id_plan_estudio_detalle <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El campo "id_plan_estudio_detalle" debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + ISNULL(CAST(@id_plan_estudio_detalle AS VARCHAR), 'NULL');
+            PRINT 'Solución: Use números positivos como 1, 2, 3, etc.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @id_plan_estudio <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El campo "id_plan_estudio" debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + ISNULL(CAST(@id_plan_estudio AS VARCHAR), 'NULL');
+            PRINT 'Solución: Consulte la tabla PLAN_ESTUDIO para obtener IDs válidos.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @id_curso <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El campo "id_curso" debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + ISNULL(CAST(@id_curso AS VARCHAR), 'NULL');
+            PRINT 'Solución: Consulte la tabla CURSOS para obtener IDs válidos.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Validar créditos (debe ser mayor a 0 y típicamente no mayor a 10)
+        IF @cantidad_creditos <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: La cantidad de créditos debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + CAST(@cantidad_creditos AS VARCHAR);
+            PRINT 'Solución: Los créditos suelen ser valores entre 1 y 10. Ejemplo: 3, 4, 5.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @cantidad_creditos > 20
+        BEGIN
+            PRINT 'ADVERTENCIA [PLAN_ESTUDIO_DETALLE]: La cantidad de créditos es muy alta (' + CAST(@cantidad_creditos AS VARCHAR) + ').';
+            PRINT 'NOTA: Verifique que este valor sea correcto. Los créditos por curso normalmente no superan 10.';
+        END
+
+        -- Validar horas (debe ser mayor a 0)
+        IF @cantidad_horas <= 0
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: La cantidad de horas debe ser un número entero mayor a 0.';
+            PRINT 'Valor recibido: ' + CAST(@cantidad_horas AS VARCHAR);
+            PRINT 'Solución: Las horas suelen ser múltiplos de 16 (48, 64, 80, etc.) o según normativa.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        IF @cantidad_horas > 200
+        BEGIN
+            PRINT 'ADVERTENCIA [PLAN_ESTUDIO_DETALLE]: La cantidad de horas es muy alta (' + CAST(@cantidad_horas AS VARCHAR) + ').';
+            PRINT 'NOTA: Verifique que este valor sea correcto. Un curso típico tiene entre 48 y 96 horas.';
+        END
+
+        -- Validar número de bloque (si se proporciona)
+        IF @numero_bloque IS NOT NULL
+        BEGIN
+            IF @numero_bloque <= 0
+            BEGIN
+                PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El número de bloque debe ser un número entero mayor a 0.';
+                PRINT 'Valor recibido: ' + CAST(@numero_bloque AS VARCHAR);
+                PRINT 'Solución: Los bloques suelen ser números consecutivos: 1, 2, 3, etc.';
+                ROLLBACK;
+                RETURN;
+            END
+            
+            IF @numero_bloque > 12
+            BEGIN
+                PRINT 'ADVERTENCIA [PLAN_ESTUDIO_DETALLE]: El número de bloque (' + CAST(@numero_bloque AS VARCHAR) + ') es inusualmente alto.';
+                PRINT 'NOTA: Un plan de estudio típico tiene entre 8 y 10 bloques o semestres.';
+            END
+        END
+
+        -- Validar relación horas vs créditos (regla de negocio común)
+        -- Normalmente 1 crédito = 16 horas
+        DECLARE @horas_esperadas INT = @cantidad_creditos * 16;
+        IF ABS(@cantidad_horas - @horas_esperadas) > 8
+        BEGIN
+            PRINT 'ADVERTENCIA [PLAN_ESTUDIO_DETALLE]: La relación horas/créditos no es estándar.';
+            PRINT 'Créditos: ' + CAST(@cantidad_creditos AS VARCHAR) + ' | Horas: ' + CAST(@cantidad_horas AS VARCHAR);
+            PRINT 'Nota: Generalmente ' + CAST(@cantidad_creditos AS VARCHAR) + ' crédito(s) equivale a ' + CAST(@horas_esperadas AS VARCHAR) + ' horas.';
+            PRINT 'Solución: Verifique que los valores sean correctos según la normativa institucional.';
+        END
+
+        -- VALIDACIÓN 3: Verificar que los registros existan en las tablas relacionadas
+ 
+        -- Verificar que el registro a actualizar existe
+        IF NOT EXISTS (SELECT 1 FROM PLAN_ESTUDIO_DETALLE WHERE id_plan_estudio_detalle = @id_plan_estudio_detalle)
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: No existe un detalle de plan de estudio con el ID especificado.';
+            PRINT 'ID proporcionado: ' + CAST(@id_plan_estudio_detalle AS VARCHAR);
+            PRINT 'Solución: Verifique que el ID sea correcto. Use SP_READ_PLAN_ESTUDIO_DETALLE para listar los existentes.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que el plan de estudio existe
+        IF NOT EXISTS (SELECT 1 FROM PLAN_ESTUDIO WHERE id_plan_estudio = @id_plan_estudio)
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El plan de estudio especificado no existe en la base de datos.';
+            PRINT 'ID de plan de estudio proporcionado: ' + CAST(@id_plan_estudio AS VARCHAR);
+            PRINT 'Solución: Consulte la tabla PLAN_ESTUDIO para obtener IDs válidos.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que el curso existe
+        IF NOT EXISTS (SELECT 1 FROM CURSOS WHERE id_curso = @id_curso)
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: El curso especificado no existe en la base de datos.';
+            PRINT 'ID de curso proporcionado: ' + CAST(@id_curso AS VARCHAR);
+            PRINT 'Solución: Consulte la tabla CURSOS para obtener IDs válidos.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        -- Verificar que no exista duplicado (mismo curso en el mismo plan)
+        IF EXISTS (
+            SELECT 1 FROM PLAN_ESTUDIO_DETALLE 
+            WHERE id_plan_estudio = @id_plan_estudio 
+              AND id_curso = @id_curso 
+              AND id_plan_estudio_detalle != @id_plan_estudio_detalle
+        )
+        BEGIN
+            PRINT 'ERROR [PLAN_ESTUDIO_DETALLE]: Ya existe un registro con el mismo curso en este plan de estudio.';
+            PRINT 'Plan de estudio: ' + CAST(@id_plan_estudio AS VARCHAR) + ' | Curso: ' + CAST(@id_curso AS VARCHAR);
+            PRINT 'Solución: No puede duplicar el mismo curso dentro del mismo plan de estudio.';
+            ROLLBACK;
+            RETURN;
+        END
+
+        UPDATE PLAN_ESTUDIO_DETALLE
+        SET 
+            id_plan_estudio = @id_plan_estudio,
+            numero_bloque = @numero_bloque,
+            id_curso = @id_curso,
+            cantidad_creditos = @cantidad_creditos,
+            cantidad_horas = @cantidad_horas,
+            es_activo = @es_activo
+        WHERE 
+            id_plan_estudio_detalle = @id_plan_estudio_detalle;
+
+        PRINT 'ÉXITO: Detalle de plan de estudio actualizado correctamente.';
+        PRINT 'ID detalle actualizado: ' + CAST(@id_plan_estudio_detalle AS VARCHAR);
+        PRINT 'Curso: ' + CAST(@id_curso AS VARCHAR) + ' | Créditos: ' + CAST(@cantidad_creditos AS VARCHAR) + ' | Horas: ' + CAST(@cantidad_horas AS VARCHAR);
+        COMMIT;
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        PRINT 'ERROR INESPERADO [PLAN_ESTUDIO_DETALLE]: ' + ERROR_MESSAGE();
+        PRINT 'Código de error: ' + CAST(ERROR_NUMBER() AS VARCHAR);
+        PRINT 'Línea: ' + CAST(ERROR_LINE() AS VARCHAR);
+    END CATCH
+END;
+GO
+
+--Validacion--
+
+-- PRUEBA 1: Campos obligatorios NULL
+
+EXEC sp_update_plan_estudio 
+    @id_plan_estudio = 1,
+    @id_carrera = NULL,
+    @id_grado = 2,
+    @id_estado_plan_estudio = 1;
+GO
+
+-- PRUEBA 2: ID negativo
+
+EXEC sp_update_plan_estudio 
+    @id_plan_estudio = -5,
+    @id_carrera = 1,
+    @id_grado = 2,
+    @id_estado_plan_estudio = 1;
+GO
+
+-- PRUEBA 3: ID que no existe
+
+EXEC sp_update_plan_estudio 
+    @id_plan_estudio = 9999,
+    @id_carrera = 1,
+    @id_grado = 2,
+    @id_estado_plan_estudio = 1;
+GO
+
+-- PRUEBA 4: Carrera que no existe
+
+EXEC sp_update_plan_estudio 
+    @id_plan_estudio = 1,
+    @id_carrera = 9999,
+    @id_grado = 2,
+    @id_estado_plan_estudio = 1;
+GO
+
+-- PRUEBA 5: Cantidad de créditos negativa
+
+EXEC sp_update_plan_estudio_detalle
+    @id_plan_estudio_detalle = 1,
+    @id_plan_estudio = 1,
+    @id_curso = 1,
+    @cantidad_creditos = -3,
+    @cantidad_horas = 48,
+    @es_activo = 1;
+GO
+
+-- PRUEBA 6 Cantidad de horas = 0 (inválido)
+
+EXEC sp_update_plan_estudio_detalle
+    @id_plan_estudio_detalle = 1,
+    @id_plan_estudio = 1,
+    @id_curso = 1,
+    @cantidad_creditos = 3,
+    @cantidad_horas = 0,
+    @es_activo = 1;
+GO
+
+-- PRUEBA 7: ID detalle que no existe
+
+EXEC sp_update_plan_estudio_detalle
+    @id_plan_estudio_detalle = 9999,
+    @id_plan_estudio = 1,
+    @id_curso = 1,
+    @cantidad_creditos = 3,
+    @cantidad_horas = 48,
+    @es_activo = 1;
+GO
+
+-- PRUEBA 8: Curso duplicado dentro del mismo plan
+
+EXEC sp_update_plan_estudio_detalle
+    @id_plan_estudio_detalle = 2,
+    @id_plan_estudio = 1,
+    @id_curso = 1,  
+    @cantidad_creditos = 3,
+    @cantidad_horas = 48,
+    @es_activo = 1;
+GO
 
 		--------------------------DELETE (Sofia)-----------------------------
 /* =========================================================
@@ -1214,14 +1803,12 @@ GO
 PRINT 'Procedimiento sp_eliminar_tipo_carrera creado exitosamente.';
 GO
 
-/* =====================================================
+/*
    PRUEBAS DEL CRUD PARA TIPOS_CARRERA
-   ===================================================== */
+    */
 
--- =====================================================
--- PRUEBA 1: INSERTAR REGISTROS
--- =====================================================
-PRINT 'PRUEBA 1: INSERTANDO TIPOS DE CARRERA';
+
+-- PRUEBA 1: INSERTAR REGISTROS--
 
 EXEC sp_insertar_tipo_carrera 1, 'Ingeniería', 1;
 EXEC sp_insertar_tipo_carrera 2, 'Licenciatura', 1;
@@ -1230,31 +1817,20 @@ EXEC sp_insertar_tipo_carrera 4, 'Maestría', 1;
 EXEC sp_insertar_tipo_carrera 5, 'Doctorado', 1;
 GO
 
--- =====================================================
--- PRUEBA 2: CONSULTAR REGISTROS
--- =====================================================
-PRINT '';
-PRINT 'PRUEBA 2: CONSULTANDO TIPOS DE CARRERA';
-PRINT '--------------------------------------------------';
+-- PRUEBA 2: CONSULTAR REGISTROS-- 
 
 -- Consultar todos los registros
 EXEC sp_obtener_tipos_carrera;
 GO
 
 -- Consultar un registro específico
-PRINT '';
-PRINT 'Consultando tipo de carrera con ID = 1:';
+
 EXEC sp_obtener_tipos_carrera 1;
 GO
 
--- =====================================================
--- PRUEBA 3: ACTUALIZAR REGISTROS
--- =====================================================
-PRINT '';
-PRINT 'PRUEBA 3: ACTUALIZANDO TIPOS DE CARRERA';
-PRINT '--------------------------------------------------';
+-- PRUEBA 3: ACTUALIZAR REGISTROS--
 
--- Actualizar un registro
+-- Actualizar un registro--
 EXEC sp_actualizar_tipo_carrera 1, 'Ingeniería de Sistemas', 1;
 EXEC sp_actualizar_tipo_carrera 3, 'Diplomado Técnico Superior', 1;
 GO
@@ -1265,72 +1841,50 @@ PRINT 'Verificando cambios después de actualizaciones:';
 EXEC sp_obtener_tipos_carrera;
 GO
 
--- =====================================================
 -- PRUEBA 4: ELIMINAR REGISTROS
--- =====================================================
-PRINT '';
-PRINT 'PRUEBA 4: ELIMINANDO TIPOS DE CARRERA';
-PRINT '--------------------------------------------------';
 
 -- Eliminar un registro
-EXEC sp_eliminar_tipo_carrera 5;
+EXEC sp_eliminar_tipo_carrera 3;
 GO
 
 -- Verificar que se eliminó
 PRINT '';
-PRINT 'Verificando después de eliminación:';
+
 EXEC sp_obtener_tipos_carrera;
 GO
 
--- =====================================================
--- PRUEBA 5: VALIDACIONES - CASOS DE ERROR
--- =====================================================
-PRINT '';
-PRINT 'PRUEBA 5: PROBANDO VALIDACIONES (CASOS DE ERROR)';
-PRINT '--------------------------------------------------';
+
+-- PRUEBA 5: VALIDACIONES - CASOS DE ERROR--
+
 
 -- Error: ID duplicado
-PRINT 'Caso 1: Insertar con ID duplicado';
 EXEC sp_insertar_tipo_carrera 1, 'Carrera Duplicada', 1;
 GO
 
 -- Error: Nombre con números
-PRINT '';
-PRINT 'Caso 2: Insertar nombre con números';
+
 EXEC sp_insertar_tipo_carrera 10, 'Ingeniería 2024', 1;
 GO
 
 -- Error: Nombre NULL
-PRINT '';
-PRINT 'Caso 3: Insertar con nombre NULL';
+
 EXEC sp_insertar_tipo_carrera 10, NULL, 1;
 GO
 
--- Error: Estado inválido
-PRINT '';
-PRINT 'Caso 4: Insertar con estado inválido (2)';
-EXEC sp_insertar_tipo_carrera 10, 'Prueba Estado', 2;
-GO
 
 -- Error: Actualizar ID inexistente
-PRINT '';
-PRINT 'Caso 5: Actualizar ID inexistente';
+
 EXEC sp_actualizar_tipo_carrera 99, 'No Existe', 1;
 GO
 
 -- Error: Nombre duplicado al actualizar
-PRINT '';
-PRINT 'Caso 6: Actualizar con nombre duplicado';
+
 EXEC sp_actualizar_tipo_carrera 2, 'Ingeniería de Sistemas', 1;
 GO
 
 -- Error: Eliminar ID inexistente
-PRINT '';
-PRINT 'Caso 7: Eliminar ID inexistente';
-EXEC sp_eliminar_tipo_carrera 99;
-GO
 
-SELECT * FROM TIPOS_CARRERA ORDER BY id_tipo_carrera;
+EXEC sp_eliminar_tipo_carrera 99;
 GO
 
 		-------------------------- EMILY ----------------------------------
